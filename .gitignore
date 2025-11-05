@@ -1,0 +1,25 @@
+@"
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv/
+venv/
+ENV/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Logs e dados locais
+*.log
+*.sqlite
+*.db
+
+# Ambiente e configurações
+.env.local
+.env.*.local
+"@ | Out-File -Encoding utf8 .gitignore
