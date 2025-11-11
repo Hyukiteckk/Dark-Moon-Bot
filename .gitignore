@@ -1,25 +1,9 @@
-@"
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+# Arquivo de segredos
 .env
-.venv/
-venv/
-ENV/
 
-# VS Code
+# Pasta do VSCode
 .vscode/
-*.code-workspace
 
-# Logs e dados locais
-*.log
-*.sqlite
-*.db
-
-# Ambiente e configurações
-.env.local
-.env.*.local
-"@ | Out-File -Encoding utf8 .gitignore
+# Cache do Python
+__pycache__/
+*.pyc

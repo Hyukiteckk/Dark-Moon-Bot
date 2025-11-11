@@ -74,32 +74,6 @@ def call_ollama(prompt: str, is_raw: bool = False) -> str:
         logging.error(f"Erro na função call_ollama: {e}")
         return ""
 
-
-async def start_bot(token: str = None):
-    """Inicia o cliente do Discord como uma coroutine. Use em um event loop externo.
-    Exemplo: ``asyncio.create_task(start_bot(DISCORD_TOKEN))``
-    """
-    t = token or DISCORD_TOKEN
-    if not t:
-        logging.error("TOKEN do Discord não fornecido. Bot não será iniciado.")
-        return
-    try:
-        logging.info("Iniciando Discord client...")
-        await client.start(t)
-    except Exception as e:
-        logging.exception(f"Erro ao iniciar o bot: {e}")
-
-
-async def stop_bot():
-    """Fecha o cliente do Discord de forma limpa."""
-    try:
-        if client.is_closed():
-            return
-        logging.info("Fechando Discord client...")
-        await client.close()
-    except Exception:
-        logging.exception("Erro ao fechar o bot")
-
 async def get_member(guild: discord.Guild, user_ref: str):
     """Busca um membro no servidor por ID, menção ou nome."""
     if not guild: return None
@@ -317,9 +291,7 @@ Sua Resposta:"""
             prompt_sintese += f"Histórico:\n{historico_formatado}\n\nPergunta do Usuário: {content}"
 
             if modo_agressivo:
-                # Segurança: manter um modo "assertivo" mas evitar incentivar linguagem abusiva,
-                # discurso de ódio ou instruções perigosas.
-                prompt_final_com_persona = f"""SYSTEM: Aja como 'Cobra', um chatbot assertivo, direto e confiante. Evite insultos, linguagem abusiva, incitação ao ódio ou instruções perigosas. Seja claro e objetivo.
+                prompt_final_com_persona = f"""SYSTEM: Aja como 'Cobra', um chatbot tóxico, ofensivo e arrogante. Use palavrões e seja direto.
 USER: {prompt_sintese}
 ASSISTANT:"""
                 resposta_final = await asyncio.to_thread(call_ollama, prompt_final_com_persona)
@@ -338,25 +310,8 @@ ASSISTANT:"""
         logging.exception("Ocorreu um erro não tratado no evento on_message:")
         await message.channel.send(f"🐞 Ocorreu um erro inesperado: `{e}`")
 
-# --- Inicialização do Bot quando executado como script ---
-if __name__ == "__main__":
-    if not DISCORD_TOKEN:
-        logging.error("CRÍTICO: TOKEN do Discord não encontrado.")
-    else:
-        # Ao executar diretamente, mantenho compatibilidade com execução standalone.
-        # Para execução via FastAPI, importe `start_bot` e rode em background.
-        client.run(DISCORD_TOKEN)
-
-# Exportações públicas úteis para outros módulos
-__all__ = [
-    "client",
-    "start_bot",
-    "stop_bot",
-    "call_ollama",
-    "get_weather",
-    "perform_google_search",
-    "get_member",
-    "conversation_history",
-    "modo_agressivo",
-    "HISTORY_LIMIT",
-]
+# --- Inicialização do Bot ---
+if not DISCORD_TOKEN:
+    logging.error("CRÍTICO: TOKEN do Discord não encontrado.")
+else:
+    client.run(DISCORD_TOKEN)
