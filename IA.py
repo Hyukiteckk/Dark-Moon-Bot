@@ -15,8 +15,11 @@ load_dotenv()
 
 # --- Variáveis de Ambiente ---
 DISCORD_TOKEN = os.getenv('TOKEN')
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'gemma2:9b')
-OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://localhost:11434/api/generate')
+# Configuração do GROQ
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama3-8b-8192')
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
 ALLOWED_CHANNEL_ID = int(os.getenv('ALLOWED_CHANNEL_ID', '0'))
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 
@@ -57,21 +60,43 @@ def perform_google_search(query: str, num_results: int = 4):
         logging.error(f"Erro ao buscar no Google: {e}")
         return f"Ocorreu um erro ao tentar pesquisar na web: {e}"
 
-def call_ollama(prompt: str, is_raw: bool = False) -> str:
-    """Chama a API do Ollama."""
+def call_groq(prompt: str, system_message: str = None) -> str:
+    """Chama a API do Groq (Substituindo o Ollama)."""
     global modo_agressivo
-    payload = { "model": OLLAMA_MODEL, "stream": False, "prompt": prompt }
+    
+    if not GROQ_API_KEY:
+        logging.error("GROQ_API_KEY não encontrada no .env")
+        return "Erro: API Key do Groq não configurada."
 
-    if modo_agressivo and not is_raw:
-        payload["options"] = { "temperature": 1.2 }
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # Monta a lista de mensagens
+    messages = []
+    
+    # Se tiver mensagem de sistema (personalidade), adiciona primeiro
+    if system_message:
+        messages.append({"role": "system", "content": system_message})
+    
+    # Adiciona a mensagem do usuário
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": messages,
+        "temperature": 1.2 if modo_agressivo else 0.7,
+        "max_tokens": 1024
+    }
 
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=180)
+        response = requests.post(GROQ_URL, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
         data = response.json()
-        return data.get('response', "").strip().replace('"', '')
+        return data['choices'][0]['message']['content'].strip()
     except Exception as e:
-        logging.error(f"Erro na função call_ollama: {e}")
+        logging.error(f"Erro na função call_groq: {e}")
         return ""
 
 async def get_member(guild: discord.Guild, user_ref: str):
@@ -95,8 +120,11 @@ async def on_ready():
     logging.info(f"✅ Bot conectado como {client.user}")
     if ALLOWED_CHANNEL_ID == 0: logging.warning("AVISO: ALLOWED_CHANNEL_ID não definido.")
     else: logging.info(f"Monitorando o canal com ID: {ALLOWED_CHANNEL_ID}")
-    if not OPENWEATHER_API_KEY:
-        logging.warning("AVISO: Chave da API OpenWeatherMap não encontrada.")
+    
+    if not GROQ_API_KEY:
+        logging.error("❌ CRÍTICO: GROQ_API_KEY não encontrada! O bot não vai responder.")
+    else:
+        logging.info("✅ GROQ_API_KEY encontrada.")
 
 @client.event
 async def on_message(message: discord.Message):
@@ -129,10 +157,13 @@ async def on_message(message: discord.Message):
         if any(kw in lc for kw in palavras_chave_clima):
             if not OPENWEATHER_API_KEY: return await message.channel.send("❌ A função de clima não está configurada.")
             async with message.channel.typing():
-                prompt_extracao = f"Da frase a seguir, extraia APENAS o nome da cidade. Frase: '{content}'"
-                cidade_extraida = await asyncio.to_thread(call_ollama, prompt_extracao, is_raw=True)
+                prompt_extracao = f"Da frase a seguir, extraia APENAS o nome da cidade. Responda somente com o nome da cidade, sem pontuação. Frase: '{content}'"
+                # Aqui chamamos o GROQ
+                cidade_extraida = await asyncio.to_thread(call_groq, prompt_extracao)
+                
                 if not cidade_extraida or "N/A" in cidade_extraida:
                     return await message.channel.send("🤔 Não consegui identificar uma cidade na sua pergunta.")
+                
                 weather_info = await asyncio.to_thread(get_weather, cidade_extraida, OPENWEATHER_API_KEY)
                 if not weather_info["success"]:
                     return await message.channel.send(f"❌ Erro ao buscar clima para **{cidade_extraida}**: {weather_info['error']}")
@@ -189,43 +220,30 @@ async def on_message(message: discord.Message):
             await message.channel.send(f"✅ **{member_to_unmute.display_name}** teve seu microfone reativado.")
             return
 
-        # --- ⬇️ NOVO BLOCO: KICK (Desconectar da Call) ⬇️ ---
         if re.match(r'^(kick|kickar|kikar)\b', lc):
-            # Permissão correta para MOVER membros
             if not message.author.guild_permissions.move_members: 
                 return await message.channel.send("❌ Você não tem permissão para mover membros.")
-            
             match = re.search(r'(?:kick|kickar|kikar)\s+(.+)', content, re.IGNORECASE)
             if not match: 
                 return await message.channel.send("Uso: `kick <usuário>`")
-            
             member_to_disconnect = await get_member(message.guild, match.group(1).strip())
             if not member_to_disconnect: 
                 return await message.channel.send("❌ Usuário não encontrado.")
-            
             if not member_to_disconnect.voice:
                  return await message.channel.send(f"🤔 O usuário **{member_to_disconnect.display_name}** não está em uma chamada de voz.")
-
-            # Função correta para DESCONECTAR da call
             await member_to_disconnect.move_to(None, reason=f"Desconectado da call por {message.author}")
             await message.channel.send(f"🔌 **{member_to_disconnect.display_name}** foi desconectado da chamada de voz.")
             return
 
-        # --- ⬇️ NOVO BLOCO: EXPULSAR (Do Servidor) ⬇️ ---
         if re.match(r'^(expulsar)\b', lc):
-            # Permissão correta para KICKAR do servidor
             if not message.author.guild_permissions.kick_members: 
                 return await message.channel.send("❌ Você não tem permissão para isso.")
-            
             match = re.search(r'(?:expulsar)\s+(.+)', content, re.IGNORECASE)
             if not match: 
                 return await message.channel.send("Uso: `expulsar <usuário>`")
-            
             member_to_kick = await get_member(message.guild, match.group(1).strip())
             if not member_to_kick: 
                 return await message.channel.send("❌ Usuário não encontrado.")
-
-            # Função correta para expulsar do SERVIDOR
             await member_to_kick.kick(reason=f"Expulso por {message.author}") 
             await message.channel.send(f"✅ **{member_to_kick.display_name}** foi expulso do servidor.")
             return
@@ -249,19 +267,17 @@ async def on_message(message: discord.Message):
         async with message.channel.typing():
             historico_formatado = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
             
-            prompt_decisao = f"""Você é um roteador de decisão. Sua tarefa é escolher uma ferramenta para responder à pergunta do usuário.
-As ferramentas são [KNOWLEDGE_BASE] ou [WEB_SEARCH].
-Use [WEB_SEARCH] para qualquer pergunta sobre eventos atuais, notícias, ou dados que mudam com o tempo (população, preços, estatísticas, etc.).
-Use [KNOWLEDGE_BASE] para fatos históricos, conhecimento geral, e perguntas que não dependem do tempo.
-Exemplo 1: Pergunta: "Qual a capital da Itália?" -> Sua Resposta: FERRAMENTA: [KNOWLEDGE_BASE] | TERMO_DE_BUSCA: N/A
-Exemplo 2: Pergunta: "qual o preço atual do bitcoin?" -> Sua Resposta: FERRAMENTA: [WEB_SEARCH] | TERMO_DE_BUSCA: preço atual do bitcoin
-Exemplo 3: Pergunta: "qual a população atual de Tóquio?" -> Sua Resposta: FERRAMENTA: [WEB_SEARCH] | TERMO_DE_BUSCA: população atual de Tóquio
-Agora, sua vez.
+            prompt_decisao = f"""Você é um roteador de decisão. Escolha: [KNOWLEDGE_BASE] ou [WEB_SEARCH].
+Use [WEB_SEARCH] para eventos atuais, notícias, preços, clima atual, etc.
+Use [KNOWLEDGE_BASE] para fatos históricos, conhecimentos gerais.
+Exemplo 1: "Qual a capital da Itália?" -> FERRAMENTA: [KNOWLEDGE_BASE] | TERMO_DE_BUSCA: N/A
+Exemplo 2: "preço do bitcoin?" -> FERRAMENTA: [WEB_SEARCH] | TERMO_DE_BUSCA: preço do bitcoin
 Histórico: {historico_formatado}
 Pergunta: "{content}"
-Sua Resposta:"""
+Responda APENAS no formato: FERRAMENTA: [X] | TERMO_DE_BUSCA: [Y]"""
 
-            decisao_ia = await asyncio.to_thread(call_ollama, prompt_decisao, is_raw=True)
+            # Chamada ao GROQ para decisão
+            decisao_ia = await asyncio.to_thread(call_groq, prompt_decisao)
             
             search_results = None
             if "WEB_SEARCH" in decisao_ia:
@@ -290,13 +306,12 @@ Sua Resposta:"""
             prompt_sintese += "Com base no histórico e no contexto, responda à pergunta do usuário de forma natural e completa.\n"
             prompt_sintese += f"Histórico:\n{historico_formatado}\n\nPergunta do Usuário: {content}"
 
+            system_prompt = None
             if modo_agressivo:
-                prompt_final_com_persona = f"""SYSTEM: Aja como 'Cobra', um chatbot tóxico, ofensivo e arrogante. Use palavrões e seja direto.
-USER: {prompt_sintese}
-ASSISTANT:"""
-                resposta_final = await asyncio.to_thread(call_ollama, prompt_final_com_persona)
-            else:
-                resposta_final = await asyncio.to_thread(call_ollama, prompt_sintese)
+                system_prompt = "Aja como 'Cobra', um chatbot tóxico, ofensivo, irritado e arrogante. Use gírias e seja direto. Não peça desculpas."
+                
+            # Chamada Final ao GROQ
+            resposta_final = await asyncio.to_thread(call_groq, prompt_sintese, system_message=system_prompt)
 
 
             if resposta_final:
@@ -312,6 +327,6 @@ ASSISTANT:"""
 
 # --- Inicialização do Bot ---
 if not DISCORD_TOKEN:
-    logging.error("CRÍTICO: TOKEN do Discord não encontrado.")
+    logging.error("CRÍTICO: TOKEN do Disco  rd não encontrado.")
 else:
     client.run(DISCORD_TOKEN)
