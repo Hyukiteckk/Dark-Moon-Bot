@@ -1,0 +1,22 @@
+version: "3.9"
+
+networks:
+  darkmoon_net:
+    external: true  # usa rede externa compartilhada
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: darkmoon_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: darkmoon_bot
+    volumes:
+      - ./data/mongo:/data/db
+    command: ["mongod", "--auth"]
+    networks:
+      - darkmoon_net
