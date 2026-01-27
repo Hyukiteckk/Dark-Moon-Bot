@@ -11,7 +11,6 @@ import discord
 from googlesearch import search
 
 # Configurações de APIs
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama3-8b-8192')
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
@@ -138,7 +137,7 @@ def get_weather(city: str, api_key: str) -> dict:
 def perform_google_search(query: str, num_results: int = 4) -> str:
     """Realiza busca no Google e retorna resultados formatados."""
     try:
-        results = list(search(query, stop=num_results, lang='pt-br'))
+        results = list(search(query, num=num_results, lang='pt-br'))
         if not results:
             return "Nenhum resultado encontrado."
         return "\n".join([f"Link: <{link}>" for link in results])
@@ -148,12 +147,13 @@ def perform_google_search(query: str, num_results: int = 4) -> str:
 
 def call_groq(prompt: str, system_message: str = None, modo_agressivo: bool = False) -> str:
     """Chama a API do Groq para IA."""
-    if not GROQ_API_KEY:
+    groq_api_key = os.getenv('GROQ_API_KEY')
+    if not groq_api_key:
         logging.error("GROQ_API_KEY não encontrada")
         return "Erro: API Key não configurada."
 
     headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Authorization": f"Bearer {groq_api_key}",
         "Content-Type": "application/json"
     }
 
