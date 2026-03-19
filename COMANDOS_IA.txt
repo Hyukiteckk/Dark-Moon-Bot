@@ -1,0 +1,33 @@
+Dark Moon Bot - Comandos de IA
+
+1. /dark <mensagem>
+   - Descrição: Pergunta à IA Dark Moon via slash command.
+   - Exemplo: /dark mensagem:"Qual é o significado da vida?"
+
+2. !dark <mensagem>
+   - Descrição: Pergunta à IA Dark Moon via comando de texto prefixado.
+   - Exemplo: !dark Qual é o tempo hoje?
+
+3. modo agressivo
+   - Descrição: Ativa o modo agressivo da IA (respostas tóxicas e role-play).
+   - Exemplo: modo agressivo
+
+4. modo normal
+   - Descrição: Desativa o modo agressivo, retornando o comportamento padrão.
+   - Exemplo: modo normal
+
+5. limpar memoria
+   - Descrição: Limpa o histórico de conversa do canal atual.
+   - Exemplo: limpar memoria
+
+6. regras / quais são as regras / me de as regras / ler as regras
+   - Descrição: Envia as regras do servidor via DM (comando dentro de IA).
+   - Exemplo: regras
+
+Observações:
+- A IA usa o módulo commands/ia.py e o comando /dark também é registrado em IA.py.
+- Para funcionar, o bot deve ter as variáveis de ambiente TOKEN, APPLICATION_ID e PUBLIC_KEY configuradas.
+- Se o comando slash não aparecer, em 5-10 minutos o Discord deve sincronizar os comandos globais ou de guilda.
+
+
+7. zerar pontos - LIMPA OS PONTOS DO BOT DE CARRO
