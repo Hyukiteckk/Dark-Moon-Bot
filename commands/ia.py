@@ -7,8 +7,23 @@ import discord
 import re
 import asyncio
 import logging
+import os
+import sys
 from datetime import datetime
 from collections import deque
+
+# Se esse módulo for executado diretamente, inicia o bot a partir do arquivo principal
+if __name__ == "__main__":
+    projeto_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    alvo = os.path.join(projeto_raiz, 'IA.py')
+    os.chdir(projeto_raiz)
+    os.execv(sys.executable, [sys.executable, alvo])
+
+# Garante que a pasta raiz esteja no path para o import de utils funcionar
+projeto_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if projeto_raiz not in sys.path:
+    sys.path.insert(0, projeto_raiz)
+
 from utils import call_groq, perform_google_search
 
 # Histórico de conversas por canal

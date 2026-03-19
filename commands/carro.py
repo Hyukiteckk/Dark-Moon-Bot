@@ -15,7 +15,7 @@ class CarroView(discord.ui.View):
         super().__init__(timeout=None)
         self.winners = []
 
-    @discord.ui.button(label="PEGAR 🚗", style=discord.ButtonStyle.success, custom_id="carro_dark_moon_pegar")
+    @discord.ui.button(label="PEGAR 🌑", style=discord.ButtonStyle.success, custom_id="carro_dark_moon_pegar")
     async def pegar_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Botão para pegar o carro e ganhar pontos."""
         user_id = str(interaction.user.id)
@@ -23,7 +23,7 @@ class CarroView(discord.ui.View):
 
         if user_id in self.winners:
             return await interaction.response.send_message(
-                "❌ Você já pegou sua recompensa neste carro!",
+                "❌ Você já coletou sua recompensa da Lua!",
                 ephemeral=True
             )
 
@@ -33,7 +33,7 @@ class CarroView(discord.ui.View):
 
         if points_to_give == 0:
             return await interaction.response.send_message(
-                "🏁 O carro já lotou! Mais sorte na próxima.",
+                "🌖 A Lua já distribuiu todos os fragmentos, boa sorte na próxima vez.",
                 ephemeral=True
             )
 
@@ -44,11 +44,11 @@ class CarroView(discord.ui.View):
     def _calculate_points(position: int) -> int:
         """Calcula pontos baseado na posição."""
         if position == 1:
-            return 50
-        elif 2 <= position <= 4:
-            return 25
-        elif 5 <= position <= 6:
             return 15
+        elif 2 <= position <= 4:
+            return 10
+        elif 5 <= position <= 6:
+            return 5
         return 0
 
     async def _update_message(self, interaction: discord.Interaction, position: int, user_name: str, points: int, button):
@@ -58,25 +58,25 @@ class CarroView(discord.ui.View):
         
         found_field = False
         for i, field in enumerate(embed.fields):
-            if field.name == "🏆 Quem já pegou:":
+            if field.name == "🌙 Quem ja Coletou:":
                 new_value = field.value + "\n" + new_entry
-                embed.set_field_at(i, name="🏆 Quem já pegou:", value=new_value, inline=False)
+                embed.set_field_at(i, name="🌙 Quem ja Coletou:", value=new_value, inline=False)
                 found_field = True
                 break
         
         if not found_field:
-            embed.add_field(name="🏆 Quem já pegou:", value=new_entry, inline=False)
+            embed.add_field(name="🌙 Quem ja Coletou:", value=new_entry, inline=False)
 
         if len(self.winners) >= 6:
-            button.label = "CARRO CHEIO 🚫"
+            button.label = "Lua Lotada🌑"
             button.style = discord.ButtonStyle.secondary
             button.disabled = True
-            embed.set_footer(text="Dark Moon System • CARRO LOTADO")
+            embed.set_footer(text="Dark Moon System • LUA LOTADA - Próximo em 4h")
             self.stop()
         
         await interaction.message.edit(embed=embed, view=self)
         await interaction.response.send_message(
-            f"🚗 **VRUM!** {interaction.user.mention} pegou a vaga **#{position}** e ganhou **{points}** pontos!",
+            f"🌙 **LUA!** {interaction.user.mention} coletou um fragmento da Lua **#{position}** e ganhou **{points}** pontos!",
             ephemeral=False
         )
 
@@ -84,18 +84,18 @@ async def spawn_carro_func(channel, id_canal_carro: int):
     """Gera mensagem do carro no canal."""
     hora_atual = datetime.now().strftime("%H:%M")
     embed = discord.Embed(
-        title="🚗 O CARRO DA DARK MOON PASSOU!",
+        title="🌑 A LUA CHEIA SUBIU!",
         description=(
             f"**Horário:** {hora_atual}\n\n"
-            "Clique rápido em **PEGAR** para ganhar pontos!\n\n"
-            "🥇 **1º Lugar:** 50 Pontos\n"
-            "🥈 **2º ao 4º:** 25 Pontos\n"
-            "🥉 **5º ao 6º:** 15 Pontos"
+            "Clique rápido em **PEGAR** para coletar um fragmento da Lua!\n\n"
+            "🥇 **1º Lugar:** 15 Pontos\n"
+            "🥈 **2º ao 4º:** 10 Pontos\n"
+            "🥉 **5º ao 6º:** 5 Pontos"
         ),
-        color=discord.Color.gold()
+        color=discord.Color.purple()
     )
     embed.set_footer(text="Dark Moon System • Próximo em 4h")
-    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/3097/3097180.png")
+    embed.set_thumbnail(url="https://images.icon-icons.com/2283/PNG/512/nature_moon_stars_night_icon_141120.png")  # Imagem da Lua (exemplo)
     
     view = CarroView()
     await channel.send(embed=embed, view=view)
@@ -106,7 +106,7 @@ async def carro_background_loop(client, id_canal_carro: int):
     channel = client.get_channel(id_canal_carro)
     
     if not channel:
-        logging.warning(f"⚠️ Canal do carro ({id_canal_carro}) não encontrado.")
+        logging.warning(f"⚠️ Canal da Lua ({id_canal_carro}) não encontrado.")
         return
 
     while not client.is_closed():

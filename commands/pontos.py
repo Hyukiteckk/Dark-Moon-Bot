@@ -58,7 +58,7 @@ async def cmd_ranking(message: discord.Message):
     sorted_users = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
     top_10 = sorted_users[:10]
     
-    embed = discord.Embed(title="〔 🏆 〕Membros em Destaque", color=discord.Color.from_rgb(255, 215, 0))
+    embed = discord.Embed(title="〔 🏆 〕Membros em Destaque", color=discord.Color.from_rgb(128, 0, 128))
     
     description = (
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"

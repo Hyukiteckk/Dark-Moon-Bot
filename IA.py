@@ -8,9 +8,15 @@ ESTRUTURA MODULAR - Cada comando é um arquivo separado
 import discord
 import asyncio
 import os
+import sys
 import logging
 import time
 from dotenv import load_dotenv
+
+# Garante que a pasta raiz do projeto esteja no path para imports locais (utils, commands)
+RAIZ = os.path.abspath(os.path.dirname(__file__))
+if RAIZ not in sys.path:
+    sys.path.insert(0, RAIZ)
 
 # Carrega variáveis de ambiente ANTES de qualquer outro import local
 load_dotenv()

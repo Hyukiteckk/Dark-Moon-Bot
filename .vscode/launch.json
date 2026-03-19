@@ -5,11 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Depurar Dark-Moon (IA.py)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/IA.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
+        },
+        {
             "name": "Depurador do Python: Arquivo Atual",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
